@@ -2,36 +2,35 @@
 #include <stdlib.h>
 #include <math.h>
 
+
 #include <GL/glew.h>
 #include <GL/freeglut.h>
+
+#define GLM_FORCE_RADIANS
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "../common/shader_utils.h"
 
 
-GLuint vbo_triangle, vbo_triangle_color;
+GLuint vbo_triangle;
 GLuint program;
-GLint attribute_coord2d, attribute_v_color;
-GLint uniform_fade;
+GLint attribute_coord3d, attribute_v_color;
+GLint uniform_m_transfrom;
 
 struct attribute {
-  GLfloat coord2d[2];
+  GLfloat coord3d[3];
   GLfloat v_color[3];
 };
 
 
 int init_resource()
 {
-  /*
-  GLfloat triangle_vertices[] = {
-    0.0, 0.8,
-    -0.8, -0.8,
-    0.8, -0.8,
-  };
-  */
   struct attribute triangle_attributes[] = {
-    {{ 0.0,  0.8}, {1.0, 1.0, 0.0}},
-    {{-0.8, -0.8}, {0.0, 0.0, 1.0}},
-    {{ 0.8, -0.8}, {1.0, 0.0, 0.0}}
+    {{ 0.0,  0.8, 0.0}, {1.0, 1.0, 0.0}},
+    {{-0.8, -0.8, 0.0}, {0.0, 0.0, 1.0}},
+    {{ 0.8, -0.8, 0.0}, {1.0, 0.0, 0.0}}
   };
   glGenBuffers(1, &vbo_triangle);
   glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle);
@@ -56,9 +55,9 @@ int init_resource()
     return 0;
   }
 
-  const char* attribute_name = "coord2d";
-  attribute_coord2d = glGetAttribLocation(program,  attribute_name);
-  if (attribute_coord2d == -1) {
+  const char* attribute_name = "coord3d";
+  attribute_coord3d = glGetAttribLocation(program,  attribute_name);
+  if (attribute_coord3d == -1) {
     fprintf(stderr, "Could not bind attribute %s\n", attribute_name);
     return 0;
   }
@@ -70,22 +69,26 @@ int init_resource()
     return 0;
   }
 
-  const char* uniform_name = "fade";
-  uniform_fade = glGetUniformLocation(program, uniform_name);
-  if (uniform_fade == -1) {
+  const char* uniform_name = "m_transform";
+  uniform_m_transfrom = glGetUniformLocation(program, uniform_name);
+  if (uniform_m_transfrom == -1) {
     fprintf(stderr, "Could not bind uniform_fade %s\n", uniform_name);
     return 0;
   }
-
 
   return 1;
 }
 
 void onIdle()
 {
-  float cur_fade =  sinf(glutGet(GLUT_ELAPSED_TIME) / 1000.0 * (2 * 3.14) / 5) / 2 + 0.5;
+  float move = sinf(glutGet(GLUT_ELAPSED_TIME) / 1000.0 * (2 * 3.14) / 5) / 2 + 0.5;
+  float angle = glutGet(GLUT_ELAPSED_TIME) / 1000.0 * 1;
+  glm::vec3 axis_z(0, 0, 1);
+  //glm::mat4 m_transform(1.0f);
+  glm::mat4 m_transform = glm::translate(glm::mat4(1.0f), glm::vec3(move, 0.0, 0.0)) * glm::rotate(glm::mat4(1.0f), angle, axis_z);
+
   glUseProgram(program);
-  glUniform1f(uniform_fade, cur_fade);
+  glUniformMatrix4fv(uniform_m_transfrom, 1, GL_FALSE, glm::value_ptr(m_transform));
   glutPostRedisplay();
 }
 
@@ -97,11 +100,11 @@ void onDisplay()
   
   glUseProgram(program);
 
-  glEnableVertexAttribArray(attribute_coord2d);
+  glEnableVertexAttribArray(attribute_coord3d);
   glEnableVertexAttribArray(attribute_v_color);
   glBindBuffer(GL_ARRAY_BUFFER, vbo_triangle);
-  glVertexAttribPointer(attribute_coord2d,
-			2,
+  glVertexAttribPointer(attribute_coord3d,
+			3,
 			GL_FLOAT,
 			GL_FALSE,
 			sizeof(struct attribute),
@@ -114,7 +117,7 @@ void onDisplay()
 			(GLvoid*) offsetof(struct attribute, v_color));
 
   glDrawArrays(GL_TRIANGLES, 0, 3);
-  glDisableVertexAttribArray(attribute_coord2d);
+  glDisableVertexAttribArray(attribute_coord3d);
   glDisableVertexAttribArray(attribute_v_color);
   glutSwapBuffers();
 }
