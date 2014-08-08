@@ -127,19 +127,23 @@ int init_resource()
 
 void onIdle()
 {
-  float angle = glutGet(GLUT_ELAPSED_TIME) / 1000.0 * 1;
-  glm::vec3 axis_y(0.0f, 1.0f, 0.0f);
+  float angle = glutGet(GLUT_ELAPSED_TIME) / 1000.0 * 10;
   
-  glm::mat4 anim = glm::rotate(glm::mat4(1.0f), angle, axis_y);
-
-  // 这是模型矩阵，即将模型平移
-  glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 0.0, -4.0));
+  glm::mat4 scale = glm::scale(glm::mat4(1.0f), glm::vec3(1.0, 1.0, 1.0));
+  
+  glm::vec3 axis_y(0.0f, 1.0f, 0.0f);
+  glm::mat4 rotate  = glm::rotate(glm::mat4(1.0f), angle, axis_y);
+  
+  // 将模型平移
+  glm::mat4 translate = glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 0.0, 0.0));
+ 
+  glm::mat4 model = translate * scale;
+  
+  glm::mat4 view = glm::lookAt(glm::vec3(0.0, 5.0, 0.0), glm::vec3(0.0, 0.0, 0.0), glm::vec3(sinf(-angle * 3.14 / 180.0f), 0.0, cosf(-angle * 3.14 / 180.0f)));
   //
-  glm::mat4 view = glm::lookAt(glm::vec3(0.0, 2.0, 0.0), glm::vec3(0.0, 0.0, -4.0), glm::vec3(0.0, 1.0, 0.0));
-  //
-  glm::mat4 projection = glm::perspective(45.0f, 1.0f * screen_width / screen_height, 0.1f, 10.f);
+  glm::mat4 projection = glm::perspective(45.0f, 1.0f * screen_width / screen_height, 0.1f, 100.f);
 
-  glm::mat4 mvp = projection * view * model * anim;
+  glm::mat4 mvp = projection * view * model;
 
   glUseProgram(program);
   glUniformMatrix4fv(uniform_mvp, 1, GL_FALSE, glm::value_ptr(mvp));
@@ -203,7 +207,7 @@ int main(int argc, char** argv) {
   glutInit(&argc, argv);
   glutInitDisplayMode(GLUT_RGBA|GLUT_ALPHA|GLUT_DOUBLE|GLUT_DEPTH);
   glutInitWindowSize(screen_width, screen_height);
-  glutCreateWindow("My Second Triangle");
+  glutCreateWindow("My Rotating Cube");
 
   GLenum glew_status = glewInit();
   if (glew_status != GLEW_OK) {
@@ -218,6 +222,7 @@ int main(int argc, char** argv) {
 
   if (init_resource()){
     glutDisplayFunc(onDisplay);
+    glutReshapeFunc(onReshape);
     glutIdleFunc(onIdle);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
